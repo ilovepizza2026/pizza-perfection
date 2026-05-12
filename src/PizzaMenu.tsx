@@ -1,4 +1,5 @@
 import { PIZZAS } from './pizzas'
+import StarRating from './StarRating'
 
 const formatPrice = (usd: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(usd)
@@ -22,7 +23,8 @@ function PizzaMenu() {
           >
             <div>
               <h3 style={{ margin: '0 0 0.25rem' }}>{pizza.name}</h3>
-              <p style={{ margin: 0, color: '#555' }}>{pizza.description}</p>
+              <p style={{ margin: '0 0 0.5rem', color: '#555' }}>{pizza.description}</p>
+              <StarRating />
             </div>
             <div style={{ fontWeight: 600 }}>{formatPrice(pizza.priceUsd)}</div>
           </li>
