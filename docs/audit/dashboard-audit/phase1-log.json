@@ -1,0 +1,69 @@
+[
+  {
+    "approach": 1,
+    "desc": "Naked navigation 1440px",
+    "url": "https://cloud.murmur.dev/",
+    "status": 200
+  },
+  {
+    "approach": 2,
+    "desc": "VM token Authorization header",
+    "grpc_responses": [
+      {
+        "url": "https://cloud.murmur.dev/api/murmur.api.v1.MurmurService/ListTenants",
+        "status": 200,
+        "headers": {
+          "grpc-message": "authentication failed",
+          "grpc-status": "16",
+          "x-envoy-upstream-service-time": "1",
+          "via": "1.1 google",
+          "alt-svc": "h3=\":443\"; ma=2592000",
+          "content-length": "0",
+          "date": "Fri, 15 May 2026 03:53:56 GMT",
+          "content-type": "application/grpc-web+proto",
+          "server": "envoy"
+        }
+      },
+      {
+        "url": "https://cloud.murmur.dev/api/murmur.api.v1.MurmurService/WhoAmI",
+        "status": 200,
+        "headers": {
+          "grpc-message": "authentication failed",
+          "grpc-status": "16",
+          "x-envoy-upstream-service-time": "1",
+          "via": "1.1 google",
+          "alt-svc": "h3=\":443\"; ma=2592000",
+          "content-length": "0",
+          "date": "Fri, 15 May 2026 03:53:56 GMT",
+          "content-type": "application/grpc-web+proto",
+          "server": "envoy"
+        }
+      }
+    ]
+  },
+  {
+    "approach": 3,
+    "desc": "Cookie session",
+    "grpc_message": "missing authorization header"
+  },
+  {
+    "approach": 3,
+    "desc": "Cookie murmur_session",
+    "grpc_message": "missing authorization header"
+  },
+  {
+    "approach": 3,
+    "desc": "Cookie mr_session",
+    "grpc_message": "missing authorization header"
+  },
+  {
+    "approach": 3,
+    "desc": "Cookie auth",
+    "grpc_message": "missing authorization header"
+  },
+  {
+    "approach": "oauth",
+    "desc": "After /oauth/login redirect",
+    "url": "https://github.com/login?client_id=Iv23liK7cN4LHJJrxDDB&return_to=%2Flogin%2Foauth%2Fauthorize%3Fclient_id%3DIv23liK7cN4LHJJrxDDB%26redirect_uri%3Dhttps%253A%252F%252Fcloud.murmur.dev%252Foauth%252Fcallback%26scope%3Drepo%2Bread%253Aorg%26state%3D9724be83a7a4d9bc68ece039cd20c383f7c2120af409ea81abc32ddf6d9e57ac"
+  }
+]
