@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { TOPPINGS } from './toppings'
+import './ToppingsList.css'
 
 const formatPrice = (usd: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(usd)
@@ -36,6 +37,7 @@ function ToppingsList() {
           {filtered.map((topping) => (
             <li
               key={topping.id}
+              className="topping-item"
               style={{
                 border: '1px solid #e5e5e5',
                 borderRadius: 8,
@@ -53,6 +55,7 @@ function ToppingsList() {
                 </span>
               </div>
               <div style={{ fontWeight: 600 }}>+{formatPrice(topping.priceUsd)}</div>
+              <span className="topping-tooltip">{topping.calories} cal</span>
             </li>
           ))}
         </ul>
