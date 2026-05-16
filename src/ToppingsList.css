@@ -1,20 +1,5 @@
-.toppings-list {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
 .topping-item {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid #e5e5e5;
-  border-radius: 4px;
-  padding: 0.25rem 0.75rem;
-  cursor: default;
-  font-size: 0.9rem;
 }
 
 .topping-tooltip {
