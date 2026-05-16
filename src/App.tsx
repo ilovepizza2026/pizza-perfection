@@ -1,4 +1,5 @@
 import PizzaMenu from './PizzaMenu'
+import ToppingsList from './ToppingsList'
 
 function App() {
   return (
@@ -6,6 +7,7 @@ function App() {
       <h1>Pizza Perfection</h1>
       <p>The ultimate pizza platform.</p>
       <PizzaMenu />
+      <ToppingsList />
     </div>
   )
 }
