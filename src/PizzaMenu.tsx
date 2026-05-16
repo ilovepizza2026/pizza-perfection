@@ -4,6 +4,10 @@ import StarRating from './StarRating'
 const formatPrice = (usd: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(usd)
 
+const RECIPE_LINKS: Record<string, string> = {
+  margherita: '#recipe/margherita',
+}
+
 function PizzaMenu() {
   return (
     <section>
@@ -25,6 +29,14 @@ function PizzaMenu() {
               <h3 style={{ margin: '0 0 0.25rem' }}>{pizza.name}</h3>
               <p style={{ margin: '0 0 0.5rem', color: '#555' }}>{pizza.description}</p>
               <StarRating />
+              {RECIPE_LINKS[pizza.id] && (
+                <a
+                  href={RECIPE_LINKS[pizza.id]}
+                  style={{ fontSize: '0.85rem', color: '#c0392b', textDecoration: 'none', fontWeight: 500 }}
+                >
+                  View recipe →
+                </a>
+              )}
             </div>
             <div style={{ fontWeight: 600 }}>{formatPrice(pizza.priceUsd)}</div>
           </li>
