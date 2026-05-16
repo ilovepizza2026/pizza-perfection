@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import PizzaMenu from './PizzaMenu'
 import MargheritaRecipe from './MargheritaRecipe'
+import ToppingsList from './ToppingsList'
 
 type Page = 'menu' | 'recipe/margherita'
 
@@ -48,7 +49,12 @@ function App() {
         ))}
       </nav>
 
-      {page === 'menu' && <PizzaMenu />}
+      {page === 'menu' && (
+        <>
+          <PizzaMenu />
+          <ToppingsList />
+        </>
+      )}
       {page === 'recipe/margherita' && <MargheritaRecipe />}
     </div>
   )
