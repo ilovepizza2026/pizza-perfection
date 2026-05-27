@@ -7,7 +7,9 @@ type Props = {
 }
 
 function StarRating({ initial = 0, max = 5, onChange }: Props) {
-  const [value, setValue] = useState(initial)
+  const safeMax = Math.max(1, Math.floor(max))
+  const safeInitial = Math.min(Math.max(0, Math.floor(initial)), safeMax)
+  const [value, setValue] = useState(safeInitial)
   const [hover, setHover] = useState(0)
 
   const handleSelect = (next: number) => {
@@ -24,7 +26,7 @@ function StarRating({ initial = 0, max = 5, onChange }: Props) {
       style={{ display: 'inline-flex', gap: 2 }}
       onMouseLeave={() => setHover(0)}
     >
-      {Array.from({ length: max }, (_, i) => i + 1).map((star) => {
+      {Array.from({ length: safeMax }, (_, i) => i + 1).map((star) => {
         const filled = star <= display
         return (
           <button
