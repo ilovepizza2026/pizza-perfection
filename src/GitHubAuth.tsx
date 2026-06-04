@@ -31,7 +31,11 @@ export default function GitHubAuth() {
           storeUser(user);
           setUser(user);
           // Clean up URL
-          window.history.replaceState({}, document.title, window.location.pathname);
+          try {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } catch (error) {
+            console.warn('Failed to clean up OAuth callback URL:', error);
+          }
           setIsLoading(false);
         })
         .catch(error => {

@@ -59,7 +59,15 @@ export function logout(): void {
 
 export function getStoredUser(): GitHubUser | null {
   const stored = localStorage.getItem('github_user');
-  return stored ? JSON.parse(stored) : null;
+  if (!stored) return null;
+
+  try {
+    return JSON.parse(stored);
+  } catch (error) {
+    // Clear corrupted data and return null
+    localStorage.removeItem('github_user');
+    return null;
+  }
 }
 
 export function storeUser(user: GitHubUser): void {
