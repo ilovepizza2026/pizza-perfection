@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { initiateGitHubLogin, logout, getStoredUser, storeUser, handleOAuthCallback } from './github-auth';
 
 interface GitHubUser {
@@ -12,11 +12,12 @@ interface GitHubUser {
 export default function GitHubAuth() {
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     // Check for stored user on mount
     const storedUser = getStoredUser();
-    if (storedUser) {
+    if (storedUser && isMountedRef.current) {
       setUser(storedUser);
     }
 
@@ -28,6 +29,8 @@ export default function GitHubAuth() {
     if (code && state) {
       handleOAuthCallback(code, state)
         .then(user => {
+          if (!isMountedRef.current) return;
+
           storeUser(user);
           setUser(user);
           // Clean up URL
@@ -39,12 +42,20 @@ export default function GitHubAuth() {
           setIsLoading(false);
         })
         .catch(error => {
+          if (!isMountedRef.current) return;
+
           console.error('OAuth callback error:', error);
           setIsLoading(false);
         });
     } else {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   const handleLogin = () => {
