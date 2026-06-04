@@ -14,14 +14,15 @@ interface OAuthConfig {
 
 const GITHUB_OAUTH_CONFIG: OAuthConfig = {
   clientId: process.env.VITE_GITHUB_CLIENT_ID || 'demo-client-id',
-  redirectUri: `${window.location.origin}/oauth/callback`,
+  redirectUri: '',
   scopes: ['user:email', 'read:user']
 };
 
 export function initiateGitHubLogin(): void {
+  const redirectUri = `${window.location.origin}/oauth/callback`;
   const params = new URLSearchParams({
     client_id: GITHUB_OAUTH_CONFIG.clientId,
-    redirect_uri: GITHUB_OAUTH_CONFIG.redirectUri,
+    redirect_uri: redirectUri,
     scope: GITHUB_OAUTH_CONFIG.scopes.join(' '),
     state: generateStateToken()
   });

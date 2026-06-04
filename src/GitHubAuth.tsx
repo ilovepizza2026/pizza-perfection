@@ -32,13 +32,15 @@ export default function GitHubAuth() {
           setUser(user);
           // Clean up URL
           window.history.replaceState({}, document.title, window.location.pathname);
+          setIsLoading(false);
         })
         .catch(error => {
           console.error('OAuth callback error:', error);
+          setIsLoading(false);
         });
+    } else {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   }, []);
 
   const handleLogin = () => {
