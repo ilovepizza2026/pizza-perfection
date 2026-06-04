@@ -13,6 +13,7 @@ export default function GitHubAuth() {
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -26,14 +27,37 @@ export default function GitHubAuth() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
+    const oauthError = urlParams.get('error');
+    const errorDescription = urlParams.get('error_description');
 
-    if (code && state) {
+    // Check for OAuth errors first
+    if (oauthError && isMountedRef.current) {
+      const errorMessage = errorDescription || `OAuth error: ${oauthError}`;
+      console.error('OAuth authorization error:', { error: oauthError, description: errorDescription });
+
+      // Clean up any stored OAuth state
+      sessionStorage.removeItem('oauth_state');
+
+      setError(errorMessage);
+      setIsLoading(false);
+      setIsLoggingIn(false);
+
+      // Clean up URL
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (error) {
+        console.warn('Failed to clean up OAuth callback URL:', error);
+      }
+    } else if (code && state) {
+      // Handle successful OAuth callback
       handleOAuthCallback(code, state)
         .then(user => {
           if (!isMountedRef.current) return;
 
           storeUser(user);
           setUser(user);
+          setError(null); // Clear any previous errors
+
           // Clean up URL
           try {
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -47,6 +71,7 @@ export default function GitHubAuth() {
           if (!isMountedRef.current) return;
 
           console.error('OAuth callback error:', error);
+          setError(error.message || 'Authentication failed. Please try again.');
           setIsLoading(false);
           setIsLoggingIn(false);
         });
@@ -65,11 +90,14 @@ export default function GitHubAuth() {
     if (isLoggingIn) return; // Prevent multiple concurrent login attempts
 
     setIsLoggingIn(true);
+    setError(null); // Clear any previous errors
+
     try {
       initiateGitHubLogin();
     } catch (error) {
       console.error('Failed to initiate GitHub login:', error);
       if (isMountedRef.current) {
+        setError('Failed to initiate login. Please try again.');
         setIsLoggingIn(false);
       }
     }
@@ -140,6 +168,19 @@ export default function GitHubAuth() {
       <p style={{ marginBottom: '1rem' }}>
         Sign in with GitHub to save your pizza preferences!
       </p>
+      {error && (
+        <div style={{
+          padding: '0.75rem',
+          marginBottom: '1rem',
+          background: '#fee',
+          border: '1px solid #fcc',
+          borderRadius: '4px',
+          color: '#c33',
+          fontSize: '0.9rem'
+        }}>
+          {error}
+        </div>
+      )}
       <button
         onClick={handleLogin}
         disabled={isLoggingIn}
