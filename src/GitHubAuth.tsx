@@ -14,87 +14,104 @@ export default function GitHubAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isMountedRef = useRef(true);
-  const isProcessingCallbackRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    // Skip if already processing a callback to prevent race conditions
-    if (isProcessingCallbackRef.current) return;
+    // Create new AbortController for this effect
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
-    // Handle OAuth callback first - takes priority over stored user
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const state = urlParams.get('state');
-    const oauthError = urlParams.get('error');
-    const errorDescription = urlParams.get('error_description');
+    const signal = controller.signal;
 
-    // Check for OAuth errors first
-    if (oauthError && isMountedRef.current) {
-      isProcessingCallbackRef.current = true;
-      const errorMessage = errorDescription || `OAuth error: ${oauthError}`;
-      console.error('OAuth authorization error:', { error: oauthError, description: errorDescription });
+    // Helper to safely update state if not aborted
+    const safeSetState = <T>(setState: (value: T) => void) => (value: T) => {
+      if (!signal.aborted) setState(value);
+    };
 
-      // Clean up any stored OAuth state
-      sessionStorage.removeItem('oauth_state');
+    const safeSetUser = safeSetState(setUser);
+    const safeSetError = safeSetState(setError);
+    const safeSetIsLoading = safeSetState(setIsLoading);
+    const safeSetIsLoggingIn = safeSetState(setIsLoggingIn);
 
-      // Clean up URL first, then update states atomically
       try {
-        window.history.replaceState({}, document.title, window.location.pathname);
+        // Handle OAuth callback first - takes priority over stored user
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const oauthError = urlParams.get('error');
+        const errorDescription = urlParams.get('error_description');
+
+        // Check for OAuth errors first
+        if (oauthError) {
+          const errorMessage = errorDescription || `OAuth error: ${oauthError}`;
+          console.error('OAuth authorization error:', { error: oauthError, description: errorDescription });
+
+          // Clean up any stored OAuth state
+          sessionStorage.removeItem('oauth_state');
+
+          // Clean up URL
+          try {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } catch (error) {
+            console.warn('Failed to clean up OAuth callback URL:', error);
+          }
+
+          safeSetError(errorMessage);
+          safeSetIsLoading(false);
+          safeSetIsLoggingIn(false);
+          return;
+        }
+
+        if (code && state) {
+          // Clean up URL immediately to prevent re-processing
+          try {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } catch (error) {
+            console.warn('Failed to clean up OAuth callback URL:', error);
+          }
+
+          // Handle successful OAuth callback
+          try {
+            const user = await handleOAuthCallback(code, state);
+            if (signal.aborted) return;
+
+            storeUser(user);
+            safeSetUser(user);
+            safeSetError(null);
+          } catch (error) {
+            if (signal.aborted) return;
+
+            console.error('OAuth callback error:', error);
+            safeSetError(error.message || 'Authentication failed. Please try again.');
+          }
+
+          safeSetIsLoading(false);
+          safeSetIsLoggingIn(false);
+          return;
+        }
+
+        // Only check for stored user if no OAuth callback is in progress
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          safeSetUser(storedUser);
+        }
+
+        safeSetIsLoading(false);
       } catch (error) {
-        console.warn('Failed to clean up OAuth callback URL:', error);
+        if (!signal.aborted) {
+          console.error('Auth initialization error:', error);
+          safeSetError('Failed to initialize authentication');
+          safeSetIsLoading(false);
+        }
       }
+    };
 
-      setError(errorMessage);
-      setIsLoading(false);
-      setIsLoggingIn(false);
-      isProcessingCallbackRef.current = false;
-      return; // Exit early, don't process stored user
-    }
+    initializeAuth();
 
-    if (code && state) {
-      isProcessingCallbackRef.current = true;
-
-      // Clean up URL immediately to prevent re-processing
-      try {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } catch (error) {
-        console.warn('Failed to clean up OAuth callback URL:', error);
-      }
-
-      // Handle successful OAuth callback
-      handleOAuthCallback(code, state)
-        .then(user => {
-          if (!isMountedRef.current) return;
-
-          storeUser(user);
-          setUser(user);
-          setError(null); // Clear any previous errors
-          setIsLoading(false);
-          setIsLoggingIn(false);
-        })
-        .catch(error => {
-          if (!isMountedRef.current) return;
-
-          console.error('OAuth callback error:', error);
-          setError(error.message || 'Authentication failed. Please try again.');
-          setIsLoading(false);
-          setIsLoggingIn(false);
-        })
-        .finally(() => {
-          isProcessingCallbackRef.current = false;
-        });
-      return; // Exit early, don't process stored user during OAuth callback
-    }
-
-    // Only check for stored user if no OAuth callback is in progress
-    const storedUser = getStoredUser();
-    if (storedUser && isMountedRef.current) {
-      setUser(storedUser);
-    }
-
-    if (isMountedRef.current) {
-      setIsLoading(false);
-    }
+    return () => {
+      controller.abort();
+      abortControllerRef.current = null;
+    };
 
     return () => {
       isMountedRef.current = false;
@@ -102,7 +119,7 @@ export default function GitHubAuth() {
   }, []);
 
   const handleLogin = () => {
-    if (isLoggingIn) return; // Prevent multiple concurrent login attempts
+    if (isLoggingIn || abortControllerRef.current?.signal.aborted) return;
 
     setIsLoggingIn(true);
     setError(null); // Clear any previous errors
@@ -111,7 +128,7 @@ export default function GitHubAuth() {
       initiateGitHubLogin();
     } catch (error) {
       console.error('Failed to initiate GitHub login:', error);
-      if (isMountedRef.current) {
+      if (!abortControllerRef.current?.signal.aborted) {
         setError('Failed to initiate login. Please try again.');
         setIsLoggingIn(false);
       }
