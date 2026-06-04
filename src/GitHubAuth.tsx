@@ -12,6 +12,7 @@ interface GitHubUser {
 export default function GitHubAuth() {
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -40,12 +41,14 @@ export default function GitHubAuth() {
             console.warn('Failed to clean up OAuth callback URL:', error);
           }
           setIsLoading(false);
+          setIsLoggingIn(false);
         })
         .catch(error => {
           if (!isMountedRef.current) return;
 
           console.error('OAuth callback error:', error);
           setIsLoading(false);
+          setIsLoggingIn(false);
         });
     } else {
       if (isMountedRef.current) {
@@ -59,7 +62,17 @@ export default function GitHubAuth() {
   }, []);
 
   const handleLogin = () => {
-    initiateGitHubLogin();
+    if (isLoggingIn) return; // Prevent multiple concurrent login attempts
+
+    setIsLoggingIn(true);
+    try {
+      initiateGitHubLogin();
+    } catch (error) {
+      console.error('Failed to initiate GitHub login:', error);
+      if (isMountedRef.current) {
+        setIsLoggingIn(false);
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -129,24 +142,26 @@ export default function GitHubAuth() {
       </p>
       <button
         onClick={handleLogin}
+        disabled={isLoggingIn}
         style={{
           padding: '0.75rem 1.5rem',
-          background: '#24292e',
+          background: isLoggingIn ? '#666' : '#24292e',
           color: 'white',
           border: 'none',
           borderRadius: '4px',
-          cursor: 'pointer',
+          cursor: isLoggingIn ? 'not-allowed' : 'pointer',
           fontSize: '1rem',
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
-          margin: '0 auto'
+          margin: '0 auto',
+          opacity: isLoggingIn ? 0.7 : 1
         }}
       >
         <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
           <path fillRule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
         </svg>
-        Sign in with GitHub
+        {isLoggingIn ? 'Signing in...' : 'Sign in with GitHub'}
       </button>
     </div>
   );
