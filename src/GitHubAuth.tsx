@@ -15,8 +15,12 @@ export default function GitHubAuth() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
+  const isProcessingCallbackRef = useRef(false);
 
   useEffect(() => {
+    // Skip if already processing a callback to prevent race conditions
+    if (isProcessingCallbackRef.current) return;
+
     // Handle OAuth callback first - takes priority over stored user
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
@@ -26,26 +30,37 @@ export default function GitHubAuth() {
 
     // Check for OAuth errors first
     if (oauthError && isMountedRef.current) {
+      isProcessingCallbackRef.current = true;
       const errorMessage = errorDescription || `OAuth error: ${oauthError}`;
       console.error('OAuth authorization error:', { error: oauthError, description: errorDescription });
 
       // Clean up any stored OAuth state
       sessionStorage.removeItem('oauth_state');
 
-      setError(errorMessage);
-      setIsLoading(false);
-      setIsLoggingIn(false);
-
-      // Clean up URL
+      // Clean up URL first, then update states atomically
       try {
         window.history.replaceState({}, document.title, window.location.pathname);
       } catch (error) {
         console.warn('Failed to clean up OAuth callback URL:', error);
       }
+
+      setError(errorMessage);
+      setIsLoading(false);
+      setIsLoggingIn(false);
+      isProcessingCallbackRef.current = false;
       return; // Exit early, don't process stored user
     }
 
     if (code && state) {
+      isProcessingCallbackRef.current = true;
+
+      // Clean up URL immediately to prevent re-processing
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (error) {
+        console.warn('Failed to clean up OAuth callback URL:', error);
+      }
+
       // Handle successful OAuth callback
       handleOAuthCallback(code, state)
         .then(user => {
@@ -54,13 +69,6 @@ export default function GitHubAuth() {
           storeUser(user);
           setUser(user);
           setError(null); // Clear any previous errors
-
-          // Clean up URL
-          try {
-            window.history.replaceState({}, document.title, window.location.pathname);
-          } catch (error) {
-            console.warn('Failed to clean up OAuth callback URL:', error);
-          }
           setIsLoading(false);
           setIsLoggingIn(false);
         })
@@ -71,6 +79,9 @@ export default function GitHubAuth() {
           setError(error.message || 'Authentication failed. Please try again.');
           setIsLoading(false);
           setIsLoggingIn(false);
+        })
+        .finally(() => {
+          isProcessingCallbackRef.current = false;
         });
       return; // Exit early, don't process stored user during OAuth callback
     }
