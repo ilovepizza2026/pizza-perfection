@@ -17,13 +17,7 @@ export default function GitHubAuth() {
   const isMountedRef = useRef(true);
 
   useEffect(() => {
-    // Check for stored user on mount
-    const storedUser = getStoredUser();
-    if (storedUser && isMountedRef.current) {
-      setUser(storedUser);
-    }
-
-    // Handle OAuth callback
+    // Handle OAuth callback first - takes priority over stored user
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
@@ -48,7 +42,10 @@ export default function GitHubAuth() {
       } catch (error) {
         console.warn('Failed to clean up OAuth callback URL:', error);
       }
-    } else if (code && state) {
+      return; // Exit early, don't process stored user
+    }
+
+    if (code && state) {
       // Handle successful OAuth callback
       handleOAuthCallback(code, state)
         .then(user => {
@@ -75,10 +72,17 @@ export default function GitHubAuth() {
           setIsLoading(false);
           setIsLoggingIn(false);
         });
-    } else {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
+      return; // Exit early, don't process stored user during OAuth callback
+    }
+
+    // Only check for stored user if no OAuth callback is in progress
+    const storedUser = getStoredUser();
+    if (storedUser && isMountedRef.current) {
+      setUser(storedUser);
+    }
+
+    if (isMountedRef.current) {
+      setIsLoading(false);
     }
 
     return () => {
