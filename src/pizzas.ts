@@ -30,4 +30,10 @@ export const PIZZAS: Pizza[] = [
     description: 'Tomato, mozzarella, spicy soppressata, chili honey.',
     priceUsd: 18,
   },
+  {
+    id: 'marinara',
+    name: 'Marinara',
+    description: 'Tomato, garlic, oregano, olive oil. No cheese, all soul.',
+    priceUsd: 12,
+  },
 ]
